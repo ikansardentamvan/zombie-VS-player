@@ -20,8 +20,6 @@ body{
 
 canvas{
   display:block;
-  background:
-    radial-gradient(circle at center,#0f172a 0%,#020617 70%);
 }
 
 #ui{
@@ -41,7 +39,7 @@ canvas{
   justify-content:center;
   align-items:center;
   flex-direction:column;
-  background:rgba(0,0,0,0.75);
+  background:rgba(0,0,0,0.8);
   color:white;
   z-index:20;
 }
@@ -99,8 +97,11 @@ canvas{
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-canvas.width = innerWidth;
-canvas.height = innerHeight;
+function resizeCanvas(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
 
 let mouse = {
   x: canvas.width/2,
@@ -162,7 +163,7 @@ class Player{
 
     ctx.shadowBlur = 0;
 
-    let angle = Math.atan2(
+    const angle = Math.atan2(
       mouse.y-this.y,
       mouse.x-this.x
     );
@@ -198,9 +199,7 @@ class Bullet{
 
   draw(){
 
-    // trail
     ctx.beginPath();
-
     ctx.moveTo(this.x,this.y);
 
     ctx.lineTo(
@@ -212,7 +211,6 @@ class Bullet{
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // bullet
     ctx.beginPath();
     ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
 
@@ -230,7 +228,7 @@ class Bullet{
 class Enemy{
   constructor(){
 
-    let side = Math.floor(Math.random()*4);
+    const side = Math.floor(Math.random()*4);
 
     if(side===0){
       this.x = Math.random()*canvas.width;
@@ -258,7 +256,7 @@ class Enemy{
 
   update(){
 
-    let angle = Math.atan2(
+    const angle = Math.atan2(
       player.y-this.y,
       player.x-this.x
     );
@@ -360,7 +358,7 @@ function shoot(){
 
   lastShot = now;
 
-  let angle = Math.atan2(
+  const angle = Math.atan2(
     mouse.y-player.y,
     mouse.x-player.x
   );
@@ -384,6 +382,8 @@ function explosion(x,y,color,count=20){
 
 function gameOver(){
 
+  if(gameEnded) return;
+
   gameEnded = true;
 
   document.getElementById("gameOver").style.display = "flex";
@@ -392,11 +392,33 @@ function gameOver(){
     "Final Score: " + score;
 }
 
-function animate(){
+function drawBackground(){
+
+  const gradient = ctx.createRadialGradient(
+    canvas.width/2,
+    canvas.height/2,
+    100,
+    canvas.width/2,
+    canvas.height/2,
+    canvas.width
+  );
+
+  gradient.addColorStop(0,"#0f172a");
+  gradient.addColorStop(1,"#020617");
+
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+}
+
+let lastTime = 0;
+
+function animate(time=0){
+
+  const delta = time - lastTime;
+  lastTime = time;
 
   ctx.save();
 
-  // screen shake
   if(shake > 0){
 
     ctx.translate(
@@ -407,7 +429,7 @@ function animate(){
     shake *= 0.9;
   }
 
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawBackground();
 
   // stars
   stars.forEach(st=>{
@@ -424,9 +446,9 @@ function animate(){
   });
 
   // spawn enemy
-  spawnTimer += 16;
+  spawnTimer += delta;
 
-  if(spawnTimer >= spawnRate){
+  if(spawnTimer >= spawnRate && !gameEnded){
 
     enemies.push(new Enemy());
 
@@ -470,7 +492,7 @@ function animate(){
     e.update();
     e.draw();
 
-    let distPlayer = Math.hypot(
+    const distPlayer = Math.hypot(
       player.x-e.x,
       player.y-e.y
     );
@@ -481,6 +503,11 @@ function animate(){
       if(player.hitCooldown <= 0){
 
         player.hp -= 10;
+
+        if(player.hp < 0){
+          player.hp = 0;
+        }
+
         player.hitCooldown = 30;
 
         shake = 10;
@@ -496,7 +523,7 @@ function animate(){
 
       const b = bullets[bi];
 
-      let dist = Math.hypot(
+      const dist = Math.hypot(
         b.x-e.x,
         b.y-e.y
       );
@@ -542,8 +569,10 @@ animate();
 
 window.addEventListener("resize", ()=>{
 
-  canvas.width = innerWidth;
-  canvas.height = innerHeight;
+  resizeCanvas();
+
+  player.x = canvas.width/2;
+  player.y = canvas.height/2;
 });
 </script>
 
